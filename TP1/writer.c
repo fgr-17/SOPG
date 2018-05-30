@@ -19,9 +19,13 @@
 #include <signal.h>
 
 #include "writer.h"
+#include "cadenastipo.h"
 
 /* ------------------------ variables globales ------------------------------ */
 int fd;
+
+char cadenaSIGUSR1[10];
+char cadenaSIGUSR2[10];
 
 /* ------------------------ funciones ------------------------------ */
 
@@ -49,7 +53,7 @@ void sigusr1_handler(int sig)
 {
     int num;
     
-    if ((num = write(fd, MENSAJE_SIGUSR1, strlen(MENSAJE_SIGUSR1)+1)) == -1) {
+    if ((num = write(fd, cadenaSIGUSR1, strlen(cadenaSIGUSR1)+1)) == -1) {
 			perror("Error al escribir en la FIFO.");
             exit(ERROR_ESCRIBIR_SIGUSR1);
     }
@@ -69,7 +73,7 @@ void sigusr2_handler(int sig)
 {
     int num;
     
-    if ((num = write(fd, MENSAJE_SIGUSR2, strlen(MENSAJE_SIGUSR2)+1)) == -1) {
+    if ((num = write(fd, cadenaSIGUSR2, strlen(cadenaSIGUSR2)+1)) == -1) {
 			perror("Error al escribir en la FIFO.");
             exit(ERROR_ESCRIBIR_SIGUSR2);
     }
@@ -91,6 +95,7 @@ int main(void)
 {
 	char cadena[CADENA_L];
     char*cadenaBis;
+    char cadenaDatos[CADENA_L];
 	int num;
     
     struct sigaction sa;
@@ -160,7 +165,16 @@ int main(void)
         return ERROR_OPEN_FIFO;
     }
 
+    
 
+    /* ------ genero cadenas sigusr ------ */
+    sprintf(cadenaSIGUSR1, "%s%s%s", PREFIJO_SIGUSRx, CADENA_DELIM, MENSAJE_SIGUSR1);
+    sprintf(cadenaSIGUSR2, "%s%s%s", PREFIJO_SIGUSRx, CADENA_DELIM, MENSAJE_SIGUSR2);
+
+    /*
+    printf("mensaje para enviar por SIGUSR1: %s\n", cadenaSIGUSR1);
+    printf("mensaje para enviar por SIGUSR2: %s\n", cadenaSIGUSR2);
+    */
 
     /* ------ loop ppal: ------ */
 
@@ -176,7 +190,9 @@ int main(void)
             return ERROR_FGETS;
         }
 
-		if ((num = write(fd, cadena, strlen(cadena))) == -1) {
+        sprintf(cadenaDatos, "%s%s%s", PREFIJO_TEXTO, CADENA_DELIM, cadenaBis);
+
+		if ((num = write(fd, cadenaDatos, strlen(cadenaDatos))) == -1) {
 			perror("Error al escribir en la FIFO.");
             return -1;
             

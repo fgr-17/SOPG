@@ -16,7 +16,7 @@
 #include <unistd.h>
 
 #include "reader.h"
-
+#include "cadenastipo.h"
 /* ------------------------ funciones ------------------------------ */
 
 /**
@@ -31,14 +31,14 @@ int main(void)
 	int num, fd;
     FILE* fdSign, *fdLog;
 
+
     printf("Sistemas Operativos de Proposito General\n");
     printf("Trabajo Practico Nª1 - >> reader <<\n\n");
 
 
+    /* ------ instalo fifo ------ */
     printf("Accediendo a FIFO : %s ...\n", FIFO_NAME);
     if(mknod(FIFO_NAME, S_IFIFO | 0666, 0) != 0) {
-    
-
         if(errno == EEXIST)
             printf("ya existe el archivo <<myfifo>>\n\n");
         else {
@@ -49,7 +49,7 @@ int main(void)
     else 
         printf("archivo <<myfifo>> creado por reader\n\n");
 
-
+    /* ------ abro fifo y conecto writer ------ */
 	printf("Esperando ejecución del programa <<writer>>...\n");
 	fd = open(FIFO_NAME, O_RDONLY);
     if(fd == -1)
@@ -60,7 +60,7 @@ int main(void)
 	printf("Programa <<writer>> conectado. \n");
 
 
-
+    /* ------ abro archivo sign ------ */
 	fdSign = fopen(ARCHIVO_SIGN, "a+w");
     if(fdSign == NULL)
     {
@@ -70,7 +70,7 @@ int main(void)
     printf("Archivo %s creado\n", ARCHIVO_SIGN);
 
 
-
+    /* ------ abro archivo log ------ */
 	fdLog = fopen(ARCHIVO_LOG, "a+w");
     if(fdLog == NULL)
     {
@@ -80,7 +80,7 @@ int main(void)
     printf("Archivo %s creado\n", ARCHIVO_LOG);
     
 
-
+    /* ------ loop ppal ------ */
     printf("\n\nRecibiendo mensajes desde el programa <<writer>>:\n");
 	do
 	{
@@ -88,6 +88,12 @@ int main(void)
 			perror("Error al leer de la FIFO.");
 		else if (num > 0)                           // pregunto si no lei EOF
 		{
+
+  //          cadena = strtok(cadena, CADENA_DELIM);
+//            strcmp(cadena,  
+
+
+
 			cadena[num] = '\0';
 			printf(": se leyeron %d bytes: %s\n", num, cadena);
 		}
