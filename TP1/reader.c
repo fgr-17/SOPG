@@ -28,9 +28,9 @@
 int main(void)
 {
 	char cadena[CADENA_L];
+    char cadenaBis [CADENA_L];
 	int num, fd;
     FILE* fdSign, *fdLog;
-
 
     printf("Sistemas Operativos de Proposito General\n");
     printf("Trabajo Practico Nª1 - >> reader <<\n\n");
@@ -65,6 +65,7 @@ int main(void)
     if(fdSign == NULL)
     {
         perror("Error al abrir archivo de señales. Saliendo...\n");
+        close(fd);  
         return ERROR_OPEN_SIGN;
     }
     printf("Archivo %s creado\n", ARCHIVO_SIGN);
@@ -75,13 +76,17 @@ int main(void)
     if(fdLog == NULL)
     {
         perror("Error al abrir archivo de log. Saliendo...\n");
+        
+        fclose(fdSign);   
+        close(fd); 
+
         return ERROR_OPEN_LOG;
     }
     printf("Archivo %s creado\n", ARCHIVO_LOG);
     
 
     /* ------ loop ppal ------ */
-    printf("\n\nRecibiendo mensajes desde el programa <<writer>>:\n");
+    printf("\n\nRecibiendo mensajes desde el programa <<writer>>:\n\n");
 	do
 	{
 		if ((num = read(fd, cadena, CADENA_L)) == -1)
@@ -89,18 +94,42 @@ int main(void)
 		else if (num > 0)                           // pregunto si no lei EOF
 		{
 
-  //          cadena = strtok(cadena, CADENA_DELIM);
-//            strcmp(cadena,  
+
+			cadena[num] = '\0';                     // agrego null al final de la cadena
+
+            strcpy(cadenaBis, cadena);
+            strtok(cadenaBis, CADENA_DELIM);
 
 
+            if(!strcmp(cadenaBis, PREFIJO_TEXTO)) {
+                printf("\t> Datos recibidos por fifo:");
+                fprintf (fdLog, "%s", cadena);
+            }
+            else if(!strcmp(cadenaBis, PREFIJO_SIGUSRx)) {
+                printf("\t> Señal recibida por fifo:");
+                fprintf (fdSign, "%s\n", cadena);
+            } 
+            else {
+                printf("\t> Datos sin formato recibidos por fifo:");
 
-			cadena[num] = '\0';
-			printf(": se leyeron %d bytes: %s\n", num, cadena);
+            }
+
+            printf("%d bytes leidos: \"%s\"\n", num, cadena);
+			
 		}
 	}
+
 	while (num > 0);
 
-    printf("EL programa <<writer>> se cerró inesperadamente. Saliendo..\n");
+    printf("El programa <<writer>> se cerró inesperadamente. Saliendo..\n");
+    /* ------ cierro los archivos antes de salir ------ */
+    printf("Cierro archivos de texto y fifo\n");
+
+    fclose(fdLog);
+    fclose(fdSign);   
+    close(fd); 
+
+
   
 	return 0;
 }

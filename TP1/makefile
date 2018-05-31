@@ -10,4 +10,4 @@ writer: writer.c
 	$(CC) -o writer writer.c $(CFLAGS)
 
 clean:
-	rm -rf *.o reader writer
+	rm -rf *.o reader writer Log.txt Sign.txt myfifo

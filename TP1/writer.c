@@ -52,13 +52,14 @@ void sigpipe_handler(int sig)
 void sigusr1_handler(int sig)
 {
     int num;
-    
+        
     if ((num = write(fd, cadenaSIGUSR1, strlen(cadenaSIGUSR1)+1)) == -1) {
 			perror("Error al escribir en la FIFO.");
             exit(ERROR_ESCRIBIR_SIGUSR1);
     }
 	else {
         write(0, MSJ_TERMINAL_SIGUSR1, sizeof(MSJ_TERMINAL_SIGUSR1));    
+        write(0, MSJ_INGRESE_TEXTO, sizeof(MSJ_INGRESE_TEXTO));
     }
     return;
 }
@@ -78,7 +79,8 @@ void sigusr2_handler(int sig)
             exit(ERROR_ESCRIBIR_SIGUSR2);
     }
 	else {
-        write(0, MSJ_TERMINAL_SIGUSR2, sizeof(MSJ_TERMINAL_SIGUSR2));    
+        write(0, MSJ_TERMINAL_SIGUSR2, sizeof(MSJ_TERMINAL_SIGUSR2));  
+        write(0, MSJ_INGRESE_TEXTO, sizeof(MSJ_INGRESE_TEXTO));  
     }
     return;
 }
@@ -97,6 +99,7 @@ int main(void)
     char*cadenaBis;
     char cadenaDatos[CADENA_L];
 	int num;
+    pid_t miPID;
     
     struct sigaction sa;
     struct sigaction sa_sigusr1;
@@ -105,6 +108,8 @@ int main(void)
     printf("Sistemas Operativos de Proposito General\n");
     printf("Trabajo Practico Nª1 - >> writer <<\n\n");
 
+    miPID = getpid();           // obtengo el pid de este proceso
+    printf("PID de writer : %d\n\n", miPID);
 
     printf("Instalando handlers de señales\n");
 
@@ -182,11 +187,12 @@ int main(void)
 	printf("Programa <<reader>> conectado. \n");
 	while (1)
 	{
-        printf("Ingrese texto para enviar a reader:");
+        printf(MSJ_INGRESE_TEXTO);
 		cadenaBis = fgets(cadena, CADENA_L,stdin);
 
         if(cadenaBis != cadena) {
             perror("Error al leer del buffer stdin. Saliendo...\n");
+            close(fd);
             return ERROR_FGETS;
         }
 
