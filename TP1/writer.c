@@ -184,11 +184,14 @@ int main(void)
     /* ------ loop ppal: ------ */
 
 
-	printf("Programa <<reader>> conectado. \n");
+	printf("Programa <<reader>> conectado\n");
+    printf("------------------------------ \n\n\n");
 	while (1)
 	{
         printf(MSJ_INGRESE_TEXTO);
-		cadenaBis = fgets(cadena, CADENA_L,stdin);
+		cadenaBis = fgets(cadena, CADENA_L, stdin);
+
+        cadenaBis [strcspn(cadenaBis, "\n")] = '\0';    // saco el \n que mete el fgets
 
         if(cadenaBis != cadena) {
             perror("Error al leer del buffer stdin. Saliendo...\n");
@@ -204,7 +207,7 @@ int main(void)
             
         }
 		else
-			printf("writer: se escribieron %d bytes\n", num);
+			printf("\t > se escribieron %d bytes\n", num);
 	}
 	return 0;
 }

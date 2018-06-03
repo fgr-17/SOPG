@@ -15,9 +15,26 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <signal.h>
+
 #include "reader.h"
 #include "cadenastipo.h"
 /* ------------------------ funciones ------------------------------ */
+
+/**
+ * @fn void sigpipe_handler(int sig)
+ *
+ * @brief capturo SIGPIPE para el caso que si se cerro el reader y quiera escribir en la fifo
+ */
+
+void sigpipe_handler(int sig)
+{
+   // write(0, MSJ_SALIDA_SIGPIPE, sizeof(MSJ_SALIDA_SIGPIPE));
+   // close(fd);
+   // exit(ERROR_READER_CERRADO);
+exit(0);
+}
+
 
 /**
  * @fn void main (void)
@@ -31,58 +48,73 @@ int main(void)
     char cadenaBis [CADENA_L];
 	int num, fd;
     FILE* fdSign, *fdLog;
+    struct sigaction sa;
+
 
     printf("Sistemas Operativos de Proposito General\n");
     printf("Trabajo Practico Nª1 - >> reader <<\n\n");
+
+
+    /* ------ instalo sigpipe ------ */
+    sa.sa_handler = sigpipe_handler;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);
+    if (sigaction(SIGPIPE, &sa, NULL) == -1) {
+        perror("Error al instalar handler de SIGPIPE");
+        exit(1);
+    }
+    printf("\tHandler de SIGPIPE instalado\n");
 
 
     /* ------ instalo fifo ------ */
     printf("Accediendo a FIFO : %s ...\n", FIFO_NAME);
     if(mknod(FIFO_NAME, S_IFIFO | 0666, 0) != 0) {
         if(errno == EEXIST)
-            printf("ya existe el archivo <<myfifo>>\n\n");
+            printf("\t> ya existe el archivo <<myfifo>>\n\n");
         else {
-            perror("Error al crear la FIFO");
+            perror("\t> Error al crear la FIFO");
             return ERROR_MKNOD;
         }
     }
     else 
-        printf("archivo <<myfifo>> creado por reader\n\n");
+        printf("\t> Archivo <<myfifo>> creado por reader\n\n");
 
     /* ------ abro fifo y conecto writer ------ */
-	printf("Esperando ejecución del programa <<writer>>...\n");
+	printf("\nEsperando ejecución del programa <<writer>>...\n");
 	fd = open(FIFO_NAME, O_RDONLY);
     if(fd == -1)
     {
-        perror("Error al abrir la FIFO. Saliendo...\n");
+        perror("\t> Error al abrir la FIFO. Saliendo...\n");
         return ERROR_OPEN_FIFO;
     }
-	printf("Programa <<writer>> conectado. \n");
+	printf("\t> Programa <<writer>> conectado. \n");
 
 
     /* ------ abro archivo sign ------ */
+    fprintf(stdout, "\nAbriendo archivo %s\n..", ARCHIVO_SIGN);
 	fdSign = fopen(ARCHIVO_SIGN, "a+w");
     if(fdSign == NULL)
     {
-        perror("Error al abrir archivo de señales. Saliendo...\n");
+        perror("\t> Error al abrir archivo de señales. Saliendo...\n");
         close(fd);  
         return ERROR_OPEN_SIGN;
     }
-    printf("Archivo %s creado\n", ARCHIVO_SIGN);
+    printf("\t> Archivo %s creado\n", ARCHIVO_SIGN);
 
 
     /* ------ abro archivo log ------ */
+    fprintf(stdout, "\nAbriendo archivo %s\n..", ARCHIVO_LOG);
 	fdLog = fopen(ARCHIVO_LOG, "a+w");
     if(fdLog == NULL)
     {
-        perror("Error al abrir archivo de log. Saliendo...\n");
+        perror("\t> Error al abrir archivo de log. Saliendo...\n");
         
         fclose(fdSign);   
         close(fd); 
 
         return ERROR_OPEN_LOG;
     }
-    printf("Archivo %s creado\n", ARCHIVO_LOG);
+    printf("\t> Archivo %s creado\n", ARCHIVO_LOG);
     
 
     /* ------ loop ppal ------ */
