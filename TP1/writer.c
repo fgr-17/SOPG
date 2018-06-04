@@ -30,6 +30,21 @@ char cadenaSIGUSR2[10];
 /* ------------------------ funciones ------------------------------ */
 
 
+
+/**
+ * @fn void sigint_handler(int sig)
+ *
+ * @brief capturo SIGINT para el caso que quieran cerrar el programa con Ctrl+C
+ */
+
+void sigint_handler(int sig)
+{
+    write(0, MSJ_SALIDA_SIGPIPE, sizeof(MSJ_SALIDA_SIGPIPE));
+    close(fd);
+    exit(ERROR_SIGINT);
+}
+
+
 /**
  * @fn void sigpipe_handler(int sig)
  *
@@ -102,6 +117,7 @@ int main(void)
     pid_t miPID;
     
     struct sigaction sa;
+    struct sigaction si;
     struct sigaction sa_sigusr1;
     struct sigaction sa_sigusr2;
 
@@ -112,6 +128,17 @@ int main(void)
     printf("PID de writer : %d\n\n", miPID);
 
     printf("Instalando handlers de señales\n");
+
+    /* ------ instalo sigint ------ */
+    printf("Instalando handler de SIGINT...\n");
+    si.sa_handler = sigint_handler;
+    si.sa_flags = 0;
+    sigemptyset(&si.sa_mask);
+    if (sigaction(SIGINT, &si, NULL) == -1) {
+        perror("\tError al instalar handler de SIGINT");
+        exit(1);
+    }
+    printf("\tHandler de SIGINT instalado\n");
 
 
     /* ------ instalo sigpipe ------ */
@@ -153,12 +180,12 @@ int main(void)
         if(errno == EEXIST)
             printf("\tYa existe un archivo <<myfifo>>\n\n");
         else {
-            perror("Error al crear la FIFO");
+            perror("\tError al crear la FIFO");
             return ERROR_MKNOD;
         }
     }
     else 
-        printf("archivo <<myfifo>> creado por writer\n\n");
+        printf("\tarchivo <<myfifo>> creado por writer\n\n");
 
     /* ------ abro fifo ------ */
 	printf("Esperando ejecución del programa <<reader>>...\n");
@@ -203,11 +230,11 @@ int main(void)
 
 		if ((num = write(fd, cadenaDatos, strlen(cadenaDatos))) == -1) {
 			perror("Error al escribir en la FIFO.");
-            return -1;
+            return ERROR_ESCRIBIR_FIFO;
             
         }
 		else
-			printf("\t > se escribieron %d bytes\n", num);
+			printf("Se escribieron %d bytes\n", num);
 	}
 	return 0;
 }

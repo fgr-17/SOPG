@@ -11,3 +11,4 @@
 #define ERROR_OPEN_SIGN         -4
 #define ERROR_OPEN_LOG          -5
 
+#define MSJ_SALIDA_SIGINT       "\nSe recibio SIGINT. Cierro archivos y salgo.\n"
