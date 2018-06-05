@@ -22,7 +22,7 @@
 #include "cadenastipo.h"
 
 /* ------------------------ variables globales ------------------------------ */
-int fd;
+volatile sig_atomic_t fd;
 
 char cadenaSIGUSR1[10];
 char cadenaSIGUSR2[10];
@@ -39,7 +39,7 @@ char cadenaSIGUSR2[10];
 
 void sigint_handler(int sig)
 {
-    write(0, MSJ_SALIDA_SIGPIPE, sizeof(MSJ_SALIDA_SIGPIPE));
+    write(0, MSJ_SALIDA_SIGINT, sizeof(MSJ_SALIDA_SIGINT));
     close(fd);
     exit(ERROR_SIGINT);
 }
@@ -130,15 +130,15 @@ int main(void)
     printf("Instalando handlers de señales\n");
 
     /* ------ instalo sigint ------ */
-    printf("Instalando handler de SIGINT...\n");
+    //printf("Instalando handler de SIGINT...\n");
     si.sa_handler = sigint_handler;
     si.sa_flags = 0;
     sigemptyset(&si.sa_mask);
     if (sigaction(SIGINT, &si, NULL) == -1) {
-        perror("\tError al instalar handler de SIGINT");
+        perror("Error al instalar handler de SIGINT");
         exit(1);
     }
-    printf("\tHandler de SIGINT instalado\n");
+    printf("Handler de SIGINT instalado\n");
 
 
     /* ------ instalo sigpipe ------ */
@@ -149,7 +149,7 @@ int main(void)
         perror("Error al instalar handler de SIGPIPE");
         exit(1);
     }
-    printf("\tHandler de SIGPIPE instalado\n");
+    printf("Handler de SIGPIPE instalado\n");
 
     /* ------ instalo sigusr1 ------ */
     sa_sigusr1.sa_handler = sigusr1_handler;
@@ -159,7 +159,7 @@ int main(void)
         perror("Error al instalar handler de SIGUSR1");
         exit(1);
     }
-    printf("\tHandler de SIGUSR1 instalado\n");
+    printf("Handler de SIGUSR1 instalado\n");
 
     /* ------ instalo sigusr2 ------ */
     sa_sigusr2.sa_handler = sigusr2_handler;
@@ -170,7 +170,7 @@ int main(void)
         perror("Error al instalar handler de SIGUSR2");
         exit(1);
     }
-    printf("\tHandler de SIGUSR2 instalado\n");
+    printf("Handler de SIGUSR2 instalado\n");
 
     /* ------ creo fifo ------ */
     printf("\nAccediendo a FIFO : %s ...\n", FIFO_NAME);
@@ -178,14 +178,14 @@ int main(void)
     
 
         if(errno == EEXIST)
-            printf("\tYa existe un archivo <<myfifo>>\n\n");
+            printf("Ya existe un archivo <<myfifo>>\n\n");
         else {
-            perror("\tError al crear la FIFO");
+            perror("Error al crear la FIFO");
             return ERROR_MKNOD;
         }
     }
     else 
-        printf("\tarchivo <<myfifo>> creado por writer\n\n");
+        printf("Archivo <<myfifo>> creado por writer\n\n");
 
     /* ------ abro fifo ------ */
 	printf("Esperando ejecución del programa <<reader>>...\n");

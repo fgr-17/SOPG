@@ -22,8 +22,8 @@
 
 
 /* ------------------------ variables globales ------------------------------ */
-int fd;                         // archivo de la fifo
-FILE* fdSign, *fdLog;              // archivos de escritura 
+volatile sig_atomic_t fd;                             // archivo de la fifo
+
 
 /* ------------------------ funciones ------------------------------ */
 
@@ -42,11 +42,12 @@ void sigint_handler(int sig)
     close(fdLog);
     close(fdSign);   
     */
-
+/*
     fclose(fdLog);
     fclose(fdSign);
     close(fd);
     exit(0);
+*/
 }
 
 
@@ -63,35 +64,37 @@ int main(void)
     int num;
     struct sigaction sa;
 
+    FILE* fdSign, *fdLog;               // archivos de escritura 
 
     printf("Sistemas Operativos de Proposito General\n");
     printf("Trabajo Practico Nª1 - >> reader <<\n\n");
 
 
+    //printf("Para salir del programa <<reader>>, cierre el programa <<writer>>");
     /* ------ instalo sigint ------ */
     printf("Instalando handler de SIGINT...\n");
     sa.sa_handler = sigint_handler;
-    sa.sa_flags = 0;
+    sa.sa_flags = 0; //SA_RESTART;
     sigemptyset(&sa.sa_mask);
     if (sigaction(SIGINT, &sa, NULL) == -1) {
-        perror("\tError al instalar handler de SIGINT");
+        perror("Error al instalar handler de SIGINT");
         exit(1);
     }
-    printf("\tHandler de SIGINT instalado\n");
+    printf("Handler de SIGINT instalado\n");
 
 
     /* ------ instalo fifo ------ */
     printf("\nAccediendo a FIFO : %s ...\n", FIFO_NAME);
     if(mknod(FIFO_NAME, S_IFIFO | 0666, 0) != 0) {
         if(errno == EEXIST)
-            printf("\tya existe el archivo <<myfifo>>\n");
+            printf("Ya existe el archivo <<myfifo>>\n");
         else {
-            perror("\tError al crear la FIFO");
+            perror("Error al crear la FIFO");
             return ERROR_MKNOD;
         }
     }
     else 
-        printf("\tArchivo <<myfifo>> creado por <<reader>>\n");
+        printf("Archivo <<myfifo>> creado por <<reader>>\n");
 
 
     /* ------ abro fifo y conecto writer ------ */
@@ -99,10 +102,10 @@ int main(void)
 	fd = open(FIFO_NAME, O_RDONLY);
     if(fd == -1)
     {
-        perror("\tError al abrir la FIFO. Saliendo...\n");
+        perror("Error al abrir la FIFO. Saliendo...\n");
         return ERROR_OPEN_FIFO;
     }
-	printf("\tPrograma <<writer>> conectado. \n");
+	printf("Programa <<writer>> conectado. \n");
 
 
 
@@ -111,11 +114,11 @@ int main(void)
 	fdSign = fopen(ARCHIVO_SIGN, "a+t");
     if(fdSign == NULL)
     {
-        perror("\tError al abrir archivo de señales. Saliendo...\n");
+        perror("Error al abrir archivo de señales. Saliendo...\n");
         close(fd);  
         return ERROR_OPEN_SIGN;
     }
-    printf("\tArchivo %s creado\n", ARCHIVO_SIGN);
+    printf("Archivo %s creado\n", ARCHIVO_SIGN);
 
 
     /* ------ abro archivo log ------ */
@@ -123,14 +126,14 @@ int main(void)
 	fdLog = fopen(ARCHIVO_LOG, "a+t");
     if(fdLog == NULL)
     {
-        perror("\tError al abrir archivo de log. Saliendo...\n");
+        perror("Error al abrir archivo de log. Saliendo...\n");
         
         fclose(fdSign);   
         close(fd); 
         
         return ERROR_OPEN_LOG;
     }
-    printf("\tArchivo %s creado\n", ARCHIVO_LOG);
+    printf("Archivo %s creado\n", ARCHIVO_LOG);
     printf("------------------------------ \n\n\n");
 
     /* ------ loop ppal ------ */
@@ -138,7 +141,7 @@ int main(void)
 	do
 	{
 		if ((num = read(fd, cadena, CADENA_L)) == -1)
-			perror("Error al leer de la FIFO.");
+			perror("FIFO no leida");
 		else if (num > 0)                           // pregunto si no lei EOF
 		{
 
@@ -150,15 +153,15 @@ int main(void)
 
 
             if(!strcmp(cadenaBis, PREFIJO_TEXTO)) {
-                printf("\tDatos recibidos por fifo:");
+                printf("Datos recibidos por fifo:");
                 fprintf (fdLog, "%s\n", cadena);
             }
             else if(!strcmp(cadenaBis, PREFIJO_SIGUSRx)) {
-                printf("\tSeñal recibida por fifo:");
+                printf("Señal recibida por fifo:");
                 fprintf (fdSign, "%s\n", cadena);
             } 
             else {
-                printf("\tDatos sin formato recibidos por fifo:");
+                printf("Datos sin formato recibidos por fifo:");
 
             }
 
@@ -169,7 +172,7 @@ int main(void)
 
 	while (num > 0);
 
-    printf("El programa <<writer>> se cerró inesperadamente. Saliendo..\n");
+    printf("Se presiono Ctrl+C o el programa <<writer>> se cerró. Saliendo...\n");
     /* ------ cierro los archivos antes de salir ------ */
     printf("Cierro archivos de texto y fifo\n");
 

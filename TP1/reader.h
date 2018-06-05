@@ -1,9 +1,9 @@
 /* ------------------------ definicion de constantes ------------------------------ */
 
-#define FIFO_NAME "myfifo"
+#define FIFO_NAME               "myfifo"
 
-#define ARCHIVO_SIGN    "./Sign.txt"
-#define ARCHIVO_LOG     "./Log.txt"
+#define ARCHIVO_SIGN            "./Sign.txt"
+#define ARCHIVO_LOG             "./Log.txt"
 
 #define ERROR_MKNOD             -1
 #define ERROR_OPEN_FIFO         -2
@@ -11,4 +11,5 @@
 #define ERROR_OPEN_SIGN         -4
 #define ERROR_OPEN_LOG          -5
 
-#define MSJ_SALIDA_SIGINT       "\nSe recibio SIGINT. Cierro archivos y salgo.\n"
+#define MSJ_SALIDA_SIGINT       "\nSe recibio SIGINT...\n"
+// #define MSJ_SALIDA_SIGINT       "Para salir cierre el programa <<writer>>\n"
