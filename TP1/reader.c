@@ -72,7 +72,7 @@ int main(void)
 
     //printf("Para salir del programa <<reader>>, cierre el programa <<writer>>");
     /* ------ instalo sigint ------ */
-    printf("Instalando handler de SIGINT...\n");
+    printf("Instalando handler de signals...\n");
     sa.sa_handler = sigint_handler;
     sa.sa_flags = 0; //SA_RESTART;
     sigemptyset(&sa.sa_mask);
@@ -140,8 +140,16 @@ int main(void)
     printf("Recibiendo mensajes desde el programa <<writer>>:\n\n");
 	do
 	{
-		if ((num = read(fd, cadena, CADENA_L)) == -1)
+		if ((num = read(fd, cadena, CADENA_L)) == -1) {
 			perror("FIFO no leida");
+            printf("Cierro archivos de texto y fifo\n");
+            fclose(fdLog);
+            fclose(fdSign);   
+            close(fd); 
+            return ERROR_READ_FIFO;
+
+
+        }
 		else if (num > 0)                           // pregunto si no lei EOF
 		{
 
@@ -168,11 +176,19 @@ int main(void)
             printf("%d bytes leidos: \"%s\"\n", num, cadena);
 			
 		}
+        else {
+            perror("\nError al leer la fifo");
+            printf("Cierro archivos de texto y fifo\n");
+            fclose(fdLog);
+            fclose(fdSign);   
+            close(fd); 
+            return ERROR_WRITER_CERRADO;
+        }
 	}
 
 	while (num > 0);
 
-    printf("Se presiono Ctrl+C o el programa <<writer>> se cerró. Saliendo...\n");
+    printf("Saliendo del programa <<reader>>...\n");
     /* ------ cierro los archivos antes de salir ------ */
     printf("Cierro archivos de texto y fifo\n");
 
