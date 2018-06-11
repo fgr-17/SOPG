@@ -1,9 +1,12 @@
 #include <pthread.h>
+
+
 struct S_ClientData
 {
 	int fd;
 	pthread_t thread;
 	int flagFree;
+    int ID;
 };
 typedef struct S_ClientData ClientData;
 
