@@ -140,6 +140,7 @@ int main()
         fgets(buf,sizeof(buf),stdin);
 
         n = write(fd, buf, strlen(buf));
+
         if(n == -1)
         {
             fprintf(stderr,"Error de write()\r\n");
