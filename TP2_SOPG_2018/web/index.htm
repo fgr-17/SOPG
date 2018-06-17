@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<!--
+ 	 PHP Conference 2014. Demo Desarrollo con Python sobre Sistemas Embebidos. 
+    Copyright (C) 2014  Ernesto Gigliotti. Laboratorio de Software Libre UTN-FRA
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <title>TP Final SOPG. CESE. 2018</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="./css/bootstrap.css" media="screen">
+    <link rel="stylesheet" href="./css/bootswatch.min.css">
+    <script type="text/javascript" async="" src="./js/ga.js"></script> 
+	<style>
+		@font-face {
+			font-family: tempFont;
+			src: url("css/3X5_____.TTF");
+		}
+	</style>
+	
+  </head>
+  <body>
+    <div class="navbar navbar-default navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <a href="http://bootswatch.com/" class="navbar-brand">TP2 SOPG</a>
+          <button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+        </div>
+        <div class="navbar-collapse collapse" id="navbar-main">
+          <ul class="nav navbar-nav">
+            <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#" id="themes">Casas <span class="caret"></span></a>
+            </li>
+            <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">Pisos <span class="caret"></span></a>
+            </li>
+            <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">Habitaciones <span class="caret"></span></a>
+            </li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="" target="_blank">Usuarios</a></li>
+            <li><a href="" target="_blank">Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="container">
+      <div class="page-header" id="banner" style="height: 0px; min-height: 0px;">
+        <div class="row">
+          <div class="col-lg-8 col-md-7 col-sm-6">
+            <h1>CESE 2018</h1>
+            <p class="lead">Sistemas operativos de proposito general</p>
+          </div>
+          <div class="col-lg-4 col-md-5 col-sm-6">
+            <div class="sponsor">
+                 <img src="images/logo_FIUBA.jpg" style="height: 100px;" /> 
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+       <!-- Paneles
+      ================================================== -->
+      <div class="bs-docs-section">
+
+        <div class="row">
+          <div class="col-lg-12">
+            <h2>Log de acceso</h2>
+          </div>
+        </div>
+
+	<table class="table" id="records_table">
+	    <thead>
+	      <tr>
+		<th>Fecha</th>
+		<th>Hora</th>
+		<th>ID</th>
+	      </tr>
+	    </thead>
+	    <tbody>
+	    </tbody>
+	  </table>
+
+
+
+
+
+      <footer>
+        <div class="row">
+          <div class="col-lg-12">
+            <p>Hecho por Esp. Ing. Ernesto Gigliotti UTN-FRA. <a href="mailto:ernestogigliotti@gmail.com">ernestogigliotti@gmail.com</a>.</p>
+            <p>Basado en <a href="http://getbootstrap.com/" rel="nofollow">Bootstrap</a>. Template de <a href="http://thomaspark.me/" rel="nofollow">Thomas Park</a> <a href="https://github.com/thomaspark/bootswatch/blob/gh-pages/LICENSE">MIT License</a>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+
+	
+    <script src="./js/jquery-1.10.2.min.js"></script>
+    <script src="./js/bootstrap.min.js"></script>
+    <script src="./js/bootswatch.js"></script> 
+  
+	<script>
+		// logs
+		function getLog()
+		{
+			var url= "cgi-bin/getLog.py";
+			$.get( url, function( data ) {
+				// llego respuesta
+				data = $.parseJSON(data);
+				$("tr:has(td)").remove(); // borro tabla
+
+				$(function() {
+				    $.each(data, function(i, item) {
+					var $tr = $('<tr>').append(
+					    $('<td>').text(item.date),
+					    $('<td>').text(item.time),
+					    $('<td>').text(item.id)
+					); 
+					$tr.appendTo('#records_table'); // cargo tabla
+				    });
+				});				
+
+
+
+			});
+		}
+		window.setInterval(getLog, 1000);
+		getLog();
+		//____________
+
+	</script>
+
+</body></html>
