@@ -6,7 +6,7 @@
 #define IP                      "127.0.0.1"
 #define PORT                    (10000)
 
-#define MENSAJE_L               100
+#define MSJ_L               100
 
 
 

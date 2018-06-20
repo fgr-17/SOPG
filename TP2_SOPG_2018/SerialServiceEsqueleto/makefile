@@ -4,7 +4,7 @@
 
 CC=gcc
 CFLAGS=-Wall -pthread
-DEPS=rs232.h SerialManager.h
+DEPS=rs232.h SerialManager.h ClientData.h serie.h server.h manejoThreads.h
 APP=serialService
 src=$(wildcard *.c)
 obj=$(src:.c=.o)

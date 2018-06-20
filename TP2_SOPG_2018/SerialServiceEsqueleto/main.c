@@ -7,36 +7,25 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-
 #include <unistd.h>
 #include <errno.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
-#include <pthread.h>
 #include <signal.h>
 
-#include "ClientData.h"
-#include "SerialManager.h"
-
 #include "server.h"
+#include "serie.h"
+#include "manejoThreads.h"
+
 /* --------------------------------------- definicion de constantes -------------------------------------- */
 
 #define MSJ_SALIDA_SIGINT   "Recibi SIGINT. Saliendo..."
 
 
-#define BAUDRATE                115200
-#define TTY                     1
-#define TTY_TEXTO               "/dev/ttyUSB1"
-#define SERIAL_REC_BUF_L        128
-
 //tener en cuenta sigint - sigpipe
 //enmascarar signals en un solo thread
 
+/* ---------------------------------------variables globales-------------------------------------- */
+
+volatile sig_atomic_t flag_sigint;
 
 
 /* --------------------------------------- signals -------------------------------------- */
@@ -71,12 +60,8 @@ void sigint_handler(int sig)
 int main(void)
 {
     struct sigaction si;
-    char mensaje [MENSAJE_L];
     pthread_t servidor;
-
-    char serial_rec_buf [SERIAL_REC_BUF_L];
-    int bytes_recibidos;
-
+    pthread_t atenderCIAA;
 
     pid_t miPID;
 
@@ -98,40 +83,27 @@ int main(void)
     }
     printf("handler de SIGINT instalado\n");
 
-    /* abro puerto serie */
-    if(serial_open(TTY, BAUDRATE)) {
-        sprintf(mensaje, "error al abrir puerto %s\nSaliendo...", TTY_TEXTO);
-        perror(mensaje);
-        return 1;        
+
+    
+    if(abrirPuertoSerie()) {
+        return 1;
     }
-    printf("Puerto serie abierto: %s %d 8N1\n", TTY_TEXTO, BAUDRATE);
+
+
+    if(lanzarThreadAtenderCIAA(&atenderCIAA)) {
+        perror ("No se pudo crear thread para iniciar la comunicacion serie\n");
+        return 1;
+    }
 
     if(lanzarThreadServidor(&servidor)) {
-        perror ("No se pudo crear thread para iniciar las conexiones\n");
+        perror ("No se pudo crear thread para iniciar el servidor\n");
         return 1;
     }
     
     while(1)
     {
-        bytes_recibidos  = serial_receive(serial_rec_buf, SERIAL_REC_BUF_L);
-
-        if(bytes_recibidos < 0) {
-            perror("serial_receive");
-        }
-        else if(bytes_recibidos > 0) {
-            printf("n: %d %s",bytes_recibidos, serial_rec_buf);
-
-            
-
-
-        
-        }
-        usleep(100000);
+       
     }
-
-
-
-
 
 
     exit(EXIT_SUCCESS);

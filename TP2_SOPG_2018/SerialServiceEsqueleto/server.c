@@ -1,5 +1,8 @@
 /**
  * @file server.c
+ *
+ * @author Federico G. Roux (rouxfederico@gmail.com)
+ *
  */
 
 /* --------------------------------------- inclusion de archivos -------------------------------------- */
@@ -7,11 +10,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
 
 #include <unistd.h>
 #include <errno.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -24,6 +28,7 @@
 #include "SerialManager.h"
 
 #include "server.h"
+#include "manejoThreads.h"
 
 /* --------------------------------------- funciones -------------------------------------- */
 
@@ -45,64 +50,6 @@ char bufferCliente [BUFFER_CLIENTE_MAX];
 
 
 /* --------------------------------------- funciones -------------------------------------- */
-
-/**
- * @fn int bloquearSign(void)
- *
- * @brief Bloqueo set de signals que me interesan
- * 
- */
-
-int bloquearSign(void) {
-
-    sigset_t set;
-
-    if(sigemptyset(&set)) {
-        perror("Error de sigemptyset()");
-        return errno;
-    }
-        
-    if(sigaddset(&set, SIGINT)) {
-        perror("Error de sigaddset()");
-        return errno;
-    }
-
-    if(pthread_sigmask(SIG_BLOCK, &set, NULL)) {
-        perror("Error de pthread_sigmask()");
-        return errno;
-    }
-
-    return 0;
-}
-
-/**
- * @fn int desbloquearSign(void)
- *
- * @brief Desbloqueo set de signals que me interesan
- * 
- */
-
-int desbloquearSign(void) {
-
-    sigset_t set;
-
-    if(sigemptyset(&set)) {
-        perror("Error de sigemptyset()");
-        return errno;
-    }
-        
-    if(sigaddset(&set, SIGINT)) {
-        perror("Error de sigaddset()");
-        return errno;
-    }
-
-    if(pthread_sigmask(SIG_UNBLOCK, &set, NULL)) {
-        perror("Error de pthread_sigmask()");
-        return errno;
-    }
-
-    return 0;
-}
 
 
 /**
@@ -200,12 +147,12 @@ int lanzarThreadCliente (int newfd) {
     }
     printf("lista de conexiones accedida\n");  
 
-
+    /*
     if(bloquearSign()) {
         perror("Error de bloquearSign()");
         return 1;
     }
-
+    */
     printf("Generando thread para atender conexion...");
     if(pthread_create (&listaConexiones[index].thread, NULL, threadAtenderCliente, &listaConexiones[index])) {
         pthread_mutex_unlock (&mutexLista);
@@ -231,12 +178,12 @@ int lanzarThreadCliente (int newfd) {
     printf("\nSe establecio la conexion %4d\n\n", clienteID);
 
 
-
+    /*
     if(desbloquearSign()) {
         perror("Error de desbloquearSign()");
         return 1;
     }
-
+    */
     // capturar sigint y poner el codigo de cerrar en la salida del accept
     // cerrar todos los threads de la lista que esten flag en cero
     // cerrar todos los sockets de la lista que esten flag en cero
@@ -260,7 +207,7 @@ void* threadServidor (void* p) {
     struct sockaddr_in clientaddr;
     struct sockaddr_in serveraddr;
 
-    char mensaje[MENSAJE_L];
+    char mensaje[MSJ_L];
 
     int newfd;
 
@@ -439,10 +386,3 @@ void* threadAtenderCliente (void* pConexion) {
     return 0;
 }
 
-
-
-/**
- * @fn void* iniciarConexionSocket (void* param)
- *
- * @brief thread para 
- */
