@@ -125,7 +125,7 @@ int main(void)
     printf("Trabajo Practico Nª1 - >> writer <<\n\n");
 
     miPID = getpid();           // obtengo el pid de este proceso
-    printf("PID de writer : %d\n\n", miPID);
+    printf("PID de serialService : %d\n\n", miPID);
 
     printf("Instalando handlers de señales\n");
 
