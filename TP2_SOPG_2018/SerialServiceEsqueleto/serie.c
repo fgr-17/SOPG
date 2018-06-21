@@ -16,26 +16,22 @@
 #include <unistd.h>
 #include <errno.h>
 
+
+#include "buf.h"
 #include "serie.h"
 #include "SerialManager.h"
 #include "manejoThreads.h"
+
 
 /* --------------------------------------- funciones -------------------------------------- */
 
 int abrirPuertoSerie (void);
 void* threadAtenderCIAA (void* p);
-
+int finalizarThreadAtenderCIAA (pthread_t atenderCIAA_thread);
 /* --------------------------------------- variables globales -------------------------------------- */
 
-pthread_mutex_t mutexBufDatos = PTHREAD_MUTEX_INITIALIZER;
-
-typedef enum {DATOS_NO_LEIDOS, DATOS_LEIDOS, DATOS_INACTIVO} estadoBufDatos_t;
-
-typedef struct {
-    estadoBufDatos_t estadoBufDatos;
-    char bufDatos [BUF_DATOS];
-}
-
+buf_t bufSerieRx;
+buf_t bufSerieTx;
 
 /* --------------------------------------- funciones -------------------------------------- */
 
@@ -85,6 +81,18 @@ int cerrarPuertoSerie (void) {
 int lanzarThreadAtenderCIAA (pthread_t*pAtenderCIAA) {
 
     printf("Generando thread para iniciar atencion de CIAA a traves de puerto serie\n");
+
+
+    if(inicializarBuf(&bufSerieRx)) {
+        fprintf(stderr, "Error al inicializar estructura de datos del buffer\n");
+        return 1;
+    }
+
+    if(inicializarBuf(&bufSerieTx)) {
+        fprintf(stderr, "Error al inicializar estructura de datos del buffer\n");
+        return 1;
+    }
+
 
     if(abrirPuertoSerie()) {
         printf("No se pudo abrir el puerto serie\n");
@@ -144,26 +152,43 @@ int finalizarThreadAtenderCIAA (pthread_t atenderCIAA_thread) {
 
 void* threadAtenderCIAA (void* p) {
 
-    char serial_rec_buf [SERIAL_REC_BUF_L];
+    char serial_rx_buf [SERIAL_BUF_L];
+    char serial_tx_buf [SERIAL_BUF_L]; 
     int bytes_recibidos;
+    int bytes_enviar;
 
-    
+
+    fprintf(stderr, "atiendo cliente\n");    
     while(1) {
-        bytes_recibidos  = serial_receive(serial_rec_buf, SERIAL_REC_BUF_L);
         
+
+        bytes_recibidos  = serial_receive(serial_rx_buf, SERIAL_BUF_L);
+        
+
         if(bytes_recibidos < 0) {
             perror("serial_receive");
         }
         else if(bytes_recibidos > 0) {
 
-            printf("n: %d %s",bytes_recibidos, serial_rec_buf);
+            printf("n: %d %s",bytes_recibidos, serial_rx_buf);
 
-
+            if(escribirBuf(&bufSerieRx, serial_rx_buf, bytes_recibidos)) {
+                fprintf(stderr, "No se pudo escribir el buffer de recepcion del puerto Serie\n");
+            }
             // serial_send(">OUT:1\r\n", sizeof(">OUT:1\r\n"));
             
         
         }
-        //usleep(100000);
+
+        if((bytes_enviar = leerBuf(&bufSerieTx, serial_tx_buf, SERIAL_BUF_L)) > 0)
+        {
+           fprintf(stderr, "serial send\n");
+            // tengo datos para enviar
+            serial_send(serial_tx_buf, bytes_enviar);
+        }
+
+    
+        usleep(10000);
     }
 
     return 0;

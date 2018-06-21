@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <signal.h>
 
+#include "buf.h"
 #include "server.h"
 #include "serie.h"
 #include "manejoThreads.h"
@@ -110,6 +111,7 @@ int main(void)
         return 1;
     }
 
+    
     if(lanzarThreadServidor(&servidor_thread)) {
         perror ("No se pudo crear thread para iniciar el servidor\n");
         return 1;

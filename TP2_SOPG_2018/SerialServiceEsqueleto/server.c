@@ -26,9 +26,11 @@
 
 #include "ClientData.h"
 #include "SerialManager.h"
+#include "manejoThreads.h"
+#include "buf.h"
 
 #include "server.h"
-#include "manejoThreads.h"
+#include "serie.h"
 
 /* --------------------------------------- funciones -------------------------------------- */
 
@@ -46,14 +48,17 @@ void* threadAtenderCliente (void* pConexion);
 
 /* --------------------------------------- variables globales -------------------------------------- */
 
-ClientData listaConexiones [BACKLOG];
 pthread_mutex_t mutexLista = PTHREAD_MUTEX_INITIALIZER;
+ClientData listaConexiones [BACKLOG];
 
 pthread_mutex_t mutexBufferCliente = PTHREAD_MUTEX_INITIALIZER;
 char bufferCliente [BUFFER_CLIENTE_MAX];
 
 pthread_mutex_t mutexSocketGeneral = PTHREAD_MUTEX_INITIALIZER;
 int socketGeneral;
+
+buf_t bufServerRx;
+buf_t bufServerTx;
 
 /* --------------------------------------- funciones -------------------------------------- */
 
@@ -197,6 +202,18 @@ int lanzarThreadServidor (pthread_t*pServidor) {
 
 
     printf("Generando thread para iniciar Servidor\n");
+
+    if(inicializarBuf(&bufServerRx)) {
+        fprintf(stderr, "Error al inicializar estructura de datos del buffer\n");
+        return 1;
+    }
+
+    if(inicializarBuf(&bufServerTx)) {
+        fprintf(stderr, "Error al inicializar estructura de datos del buffer\n");
+        return 1;
+    }
+
+
     if(bloquearSign()) {
         perror("lanzarThreadServidor - error de bloquearSign()");
         return 1;
@@ -410,7 +427,10 @@ void* threadAtenderCliente (void* pConexion) {
 
 	int n;
     int clienteID;
-	char buffer[BUFFER_CLIENTE_MAX];
+	char servidor_tx_buf[BUFFER_CLIENTE_MAX];
+    char servidor_rx_buf[BUFFER_CLIENTE_MAX];
+
+    int bytes_enviar;
 
     ClientData* pData; 
 
@@ -441,32 +461,42 @@ void* threadAtenderCliente (void* pConexion) {
 
     while(1)
     {
+        bytes_enviar = leerBuf(&bufSerieRx, servidor_tx_buf, BUFFER_CLIENTE_MAX);
 
-        // Enviamos mensaje a cliente
-	    if (write (newfd, buffer, strlen(buffer)) == -1)
-	    {
-      		perror("Thread: Error escribiendo mensaje en socket");
-      		exit (1);
-	    }
+        if(bytes_enviar > 0)
+        {
+            // tengo datos para enviar
+	        if (write (newfd, servidor_tx_buf, bytes_enviar) == -1)
+	        {
+          		perror("Thread: Error escribiendo mensaje en socket");
+          		exit (1);
+	        }
+            else {
+                // si no mande nada al servidor, no leo directamente
+                if( (n =read(newfd,servidor_rx_buf,BUFFER_CLIENTE_MAX)) == -1 )
+	            {
+		            perror("Thread: Error leyendo mensaje en socket");
+		            exit(1);
+	            }
+                fprintf(stderr, "servidor: sali del read\n");
 
+                if(n == 0) {
 
+                    fprintf(stderr, "Se cerro la conexion del cliente %d\n", clienteID);
+                    break;      // Se cerro la conexion
+                }
 
+	            servidor_rx_buf[n - 1]=0;
 
-        if( (n =read(newfd,buffer,BUFFER_CLIENTE_MAX)) == -1 )
-	    {
-		    perror("Thread: Error leyendo mensaje en socket");
-		    exit(1);
-	    }
-
-
-        if(n == 0) {
-
-            fprintf(stderr, "Se cerro la conexion del cliente %d\n", clienteID);
-            break;      // Se cerro la conexion
+                if(escribirBuf(&bufSerieTx, servidor_rx_buf, n)) {
+                    fprintf(stderr, "No se pudo escribir el buffer de recepcion del puerto Serie\n");
+                }
+	            printf("Recibi %d bytes del cliente %4d :'%s'\n", n, clienteID, servidor_rx_buf);
+            }
         }
 
-	    buffer[n - 1]=0;
-	    printf("Recibi %d bytes del cliente %4d :'%s'\n", n, clienteID, buffer);
+
+        
 
 	   
     }
