@@ -32,7 +32,11 @@
 
 /* --------------------------------------- funciones -------------------------------------- */
 
-int cerrarClientes(void);
+int finalizarThreadServidor (pthread_t servidor_thread);
+
+static int inicializarClientes(void);
+static int cerrarClientes(void);
+static int escribirSocketGeneral (int fd);
 
 int lanzarThreadServidor (pthread_t*servidor);
 int lanzarThreadCliente (int newfd);
@@ -48,39 +52,139 @@ pthread_mutex_t mutexLista = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutexBufferCliente = PTHREAD_MUTEX_INITIALIZER;
 char bufferCliente [BUFFER_CLIENTE_MAX];
 
+pthread_mutex_t mutexSocketGeneral = PTHREAD_MUTEX_INITIALIZER;
+int socketGeneral;
 
 /* --------------------------------------- funciones -------------------------------------- */
 
 
 /**
- * @fn int cerrarClientes(void);
+ * @fn static int inicializarClientes(void);
+ *
+ * @brief inicializo estructura de datos todos los clientes
+ * 
+ */
+
+static int inicializarClientes(void) {
+
+    /* intento bloquear el acceso a la lista */
+    if(pthread_mutex_lock (&mutexLista)) {
+        fprintf(stderr, "error al bloquear el acceso a la lista de conexiones");
+        return 1;
+    }
+
+    
+    cd_init(listaConexiones, BACKLOG);
+
+    if(pthread_mutex_unlock (&mutexLista)) {
+        perror("Error al desbloquear el acceso a la lista de conexiones");
+        return 1;
+    }
+
+    return 0;
+
+}
+
+
+
+/**
+ * @fn static int cerrarClientes(void);
  *
  * @brief cierro todos los clientes
  * 
  */
 
-int cerrarClientes(void) {
+static int cerrarClientes(void) {
 
     int index;
+
+    /* intento bloquear el acceso a la lista */
+    if(pthread_mutex_lock (&mutexLista)) {
+        fprintf(stderr, "error al bloquear el acceso a la lista de conexiones");
+        return 1;
+    }
+
 
     for (index = 0; index < BACKLOG; index ++) {
         if(!listaConexiones[index].flagFree) {
             
             if(close(listaConexiones[index].fd)) {
-                perror("Error de close()");
-                exit(EXIT_FAILURE);
+                perror("cerrarClientes - Error de close()");
+                return 1;
             }
             
             if(pthread_cancel(listaConexiones[index].thread)) {
-                perror("Error de pthread_cancel()");
-                exit(EXIT_FAILURE);
+                perror("cerrarClientes - Error de pthread_cancel()");
+                return 1;
             }
             
         }
     }
 
+
+   if(pthread_mutex_unlock (&mutexLista)) {
+        perror("Error al desbloquear el acceso a la lista de conexiones");
+        return 1;
+    }
+
     return 0;
 }
+/**
+ * @fn int lanzarThreadAtenderCIAA (pthread*pAtenderCIAA)
+ *
+ * @brief funcion que escribe variable global de socket a traves de mutex
+ * 
+ */
+
+
+static int escribirSocketGeneral (int fd) {
+
+    /* intento bloquear el acceso al socket gral */
+    if(pthread_mutex_lock (&mutexSocketGeneral)) {
+        fprintf(stderr, "error al bloquear el acceso al socket general");
+        return 1;
+    }
+
+    socketGeneral = fd;
+
+    /* intento desbloquear el acceso al socket gral */
+    if(pthread_mutex_unlock (&mutexSocketGeneral)) {
+        fprintf(stderr, "error al desbloquear el acceso al socket general");
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * @fn int lanzarThreadAtenderCIAA (pthread*pAtenderCIAA)
+ *
+ * @brief lanzo el thread que se comunica con la CIAA por el pto. serie
+ * 
+ */
+
+int finalizarThreadServidor (pthread_t servidor_thread) {
+
+    printf("Finalizando thread servidor\n");
+
+    if(cerrarClientes()) {
+        fprintf(stderr, "Error al intentar cerrar conexiones con clientes\n");
+        return 1;
+    }
+
+    if(pthread_cancel (servidor_thread)) {
+        perror("finalizarThreadAtenderCIAA - pthread_cancel()");
+        return 1;
+    }
+
+    if(close(socketGeneral)) {
+        perror("error al cerrar socketGeneral");
+        return 1;
+    }
+
+    return 0;
+}
+
 
 /**
  * @fn int lanzarThreadServidor
@@ -211,6 +315,7 @@ void* threadServidor (void* p) {
 
     int newfd;
 
+
     // Creamos socket
     int s = socket(PF_INET,SOCK_STREAM, 0);
 
@@ -243,15 +348,23 @@ void* threadServidor (void* p) {
     printf("Configurando socket en modo <<listen>>...");
     if (listen (s, BACKLOG) == -1) // backlog=BACKLOG
     {
-                close(s);
+        close(s);
         perror("Error al configurar socket en modo listen");
         exit(1);
     }
     printf("socket configurado en modo <<listen>>\n");
 
 
-    printf("\nInicializando estructura de datos...");
-    cd_init(listaConexiones, BACKLOG);
+    if(escribirSocketGeneral(s)) {
+        fprintf(stderr, "No se pudo escribir el socket general. Saliendo...\n");
+        exit(1);
+    }
+
+    printf("Inicializando estructura de datos...");
+    if(inicializarClientes()) {
+        fprintf(stderr, "No se pudo inicializar la lista de clientes\n");
+        return 0;
+    }
     printf("estructura de datos inicializada\n");
 
     printf("-----------------------------------------\n\n\n");
@@ -279,7 +392,7 @@ void* threadServidor (void* p) {
         }
         printf  ("Conexion entrante desde:  %s:%d\n", inet_ntoa(clientaddr.sin_addr), clientaddr.sin_port);
 
-        lanzarThreadCliente(newfd);
+        lanzarThreadCliente(newfd);                 // una vez que estableci conexion, lanzo nuevo cliente  
     }
 
     return 0;

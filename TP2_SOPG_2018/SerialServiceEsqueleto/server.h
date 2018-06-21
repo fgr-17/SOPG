@@ -12,14 +12,13 @@
 
 
 /* --------------------------------------- variables globales -------------------------------------- */
-extern int cerrarClientes(void);
 
 extern int lanzarThreadServidor (pthread_t*servidor);
-extern int lanzarThreadCliente (int newfd);
 
 extern void* threadServidor (void* p);
 extern void* threadAtenderCliente (void* pConexion);
 
-
 extern pthread_mutex_t mutexBufferCliente;
 extern char bufferCliente [BUFFER_CLIENTE_MAX];
+
+extern int finalizarThreadServidor (pthread_t servidor_thread);

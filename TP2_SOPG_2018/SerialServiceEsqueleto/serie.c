@@ -27,6 +27,16 @@ void* threadAtenderCIAA (void* p);
 
 /* --------------------------------------- variables globales -------------------------------------- */
 
+pthread_mutex_t mutexBufDatos = PTHREAD_MUTEX_INITIALIZER;
+
+typedef enum {DATOS_NO_LEIDOS, DATOS_LEIDOS, DATOS_INACTIVO} estadoBufDatos_t;
+
+typedef struct {
+    estadoBufDatos_t estadoBufDatos;
+    char bufDatos [BUF_DATOS];
+}
+
+
 /* --------------------------------------- funciones -------------------------------------- */
 
 /**
@@ -51,6 +61,19 @@ int abrirPuertoSerie (void) {
     return 0;
 }
 
+/**
+ * @fn int cerrarPuertoSerie (void)
+ *
+ * @brief cierro tty del puerto serie de la CIAA
+ * 
+ */
+
+int cerrarPuertoSerie (void) {
+     /* cierro puerto serie */
+    printf("Cerrando puerto serie...");
+    serial_close();
+    return 0;
+}
 
 /**
  * @fn int lanzarThreadAtenderCIAA (pthread*pAtenderCIAA)
@@ -62,6 +85,13 @@ int abrirPuertoSerie (void) {
 int lanzarThreadAtenderCIAA (pthread_t*pAtenderCIAA) {
 
     printf("Generando thread para iniciar atencion de CIAA a traves de puerto serie\n");
+
+    if(abrirPuertoSerie()) {
+        printf("No se pudo abrir el puerto serie\n");
+        return 1;
+    }
+
+
     if(bloquearSign()) {
         perror("lanzarThreadAtenderCIAA - error de bloquearSign()");
         return 1;
@@ -79,6 +109,31 @@ int lanzarThreadAtenderCIAA (pthread_t*pAtenderCIAA) {
 
     return 0;
 }
+
+/**
+ * @fn int lanzarThreadAtenderCIAA (pthread*pAtenderCIAA)
+ *
+ * @brief lanzo el thread que se comunica con la CIAA por el pto. serie
+ * 
+ */
+
+int finalizarThreadAtenderCIAA (pthread_t atenderCIAA_thread) {
+
+    printf("Finalizando thread para de atencion de CIAA a traves de puerto serie\n");
+
+    if(cerrarPuertoSerie()) {
+        printf("No se pudo cerrar el puerto serie\n");
+        return 1;
+    }
+
+    if(pthread_cancel (atenderCIAA_thread)) {
+        perror("finalizarThreadAtenderCIAA - pthread_cancel()");
+        return 1;
+    }
+
+    return 0;
+}
+
 
 /**
  * @fn void* threadAtenderCIAA (void* p)
@@ -103,10 +158,12 @@ void* threadAtenderCIAA (void* p) {
 
             printf("n: %d %s",bytes_recibidos, serial_rec_buf);
 
+
+            // serial_send(">OUT:1\r\n", sizeof(">OUT:1\r\n"));
             
         
         }
-        usleep(100000);
+        //usleep(100000);
     }
 
     return 0;
