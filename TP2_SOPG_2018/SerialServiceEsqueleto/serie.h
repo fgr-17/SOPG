@@ -14,6 +14,11 @@
 
 #define MENSAJE_L               64
 
+
+#define CAR_FINAL 3
+#define CADENA_OK       1
+#define CADENA_ID       2
+#define CADENA_ERROR    3
 /* --------------------------------------- funciones externas -------------------------------------- */
 
 extern int abrirPuertoSerie (void);

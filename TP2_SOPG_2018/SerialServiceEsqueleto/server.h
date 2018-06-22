@@ -9,7 +9,8 @@
 #define MSJ_L               100
 
 
-
+#define CADENA_OUT 1
+#define CADENA_ERR 2
 
 /* --------------------------------------- variables globales -------------------------------------- */
 

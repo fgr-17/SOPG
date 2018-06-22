@@ -125,6 +125,9 @@ int main(void)
 
             if(finalizarThreadAtenderCIAA(atenderCIAA_thread))
                 fprintf(stderr, "No se pudo finalizar el thread atenderCIAA");
+            
+            fprintf(stderr, "Voy a cerrar el servidor\n\n");
+
             if(finalizarThreadServidor(servidor_thread)) 
                 fprintf(stderr, "No se pudo finalizar el thread servidor");
             exit(EXIT_SUCCESS);

@@ -28,6 +28,10 @@
 int abrirPuertoSerie (void);
 void* threadAtenderCIAA (void* p);
 int finalizarThreadAtenderCIAA (pthread_t atenderCIAA_thread);
+
+static int analizarPaqueteCIAA (char* cadena);
+static int extraerIDCIAA (char* cadena);
+
 /* --------------------------------------- variables globales -------------------------------------- */
 
 buf_t bufSerieRx;
@@ -127,7 +131,7 @@ int lanzarThreadAtenderCIAA (pthread_t*pAtenderCIAA) {
 
 int finalizarThreadAtenderCIAA (pthread_t atenderCIAA_thread) {
 
-    printf("Finalizando thread para de atencion de CIAA a traves de puerto serie\n");
+    printf("\nFinalizando thread para de atencion de CIAA a traves de puerto serie\n");
 
     if(cerrarPuertoSerie()) {
         printf("No se pudo cerrar el puerto serie\n");
@@ -166,23 +170,35 @@ void* threadAtenderCIAA (void* p) {
         
 
         if(bytes_recibidos < 0) {
-            perror("serial_receive");
+            fprintf(stderr, "error al leer puerto serie\n");
         }
         else if(bytes_recibidos > 0) {
 
-            printf("n: %d %s",bytes_recibidos, serial_rx_buf);
+            // printf("SERIE: n: %d - %s",bytes_recibidos, serial_rx_buf);
 
-            if(escribirBuf(&bufSerieRx, serial_rx_buf, bytes_recibidos)) {
-                fprintf(stderr, "No se pudo escribir el buffer de recepcion del puerto Serie\n");
-            }
-            // serial_send(">OUT:1\r\n", sizeof(">OUT:1\r\n"));
+            switch(analizarPaqueteCIAA(serial_rx_buf)) {
             
-        
+            case CADENA_OK:
+                // no hago nada
+                printf("SERIE: La CIAA envio OK\n");
+                break;
+
+            case CADENA_ID:
+                printf("SERIE: La CIAA envio ID (%d)\n", extraerIDCIAA(serial_rx_buf));
+                if(escribirBuf(&bufSerieRx, serial_rx_buf, bytes_recibidos)) {
+                    fprintf(stderr, "No se pudo escribir el buffer de recepcion del puerto Serie\n");
+                }                
+                break;
+            default:
+                // no hago nada si es otra cosa                
+                printf("SERIE: La CIAA envio cadena con error\n");
+            }
+
         }
 
         if((bytes_enviar = leerBuf(&bufSerieTx, serial_tx_buf, SERIAL_BUF_L)) > 0)
         {
-           fprintf(stderr, "serial send\n");
+           // fprintf(stderr, "serial send\n");
             // tengo datos para enviar
             serial_send(serial_tx_buf, bytes_enviar);
         }
@@ -195,10 +211,59 @@ void* threadAtenderCIAA (void* p) {
 }
 
 /**
- * @fn void* threadAtenderCIAA (void* p)
+ * @fn int analizarPaqueteCIAA (char* cadena)
  *
- * @brief abro tty del puerto serie de la CIAA
+ * @brief analizo el paquete que me envio la CIAA
  * 
  */
+
+static int analizarPaqueteCIAA (char* cadena) {
+
+    char cad[16];
+
+    strcpy(cad, cadena);
+    cad[CAR_FINAL] = '\0';
+        
+
+    if(strcmp(cad, ">OK") == 0) {
+        return CADENA_OK;
+    }
+    else if (strcmp(cad, ">ID") == 0) {
+        return CADENA_ID;
+    }
+    else {
+        return CADENA_ERROR;
+    }    
+    
+    return 0;
+}
+
+/**
+ * @fn int extraerIDCIAA (char* cadena)
+ *
+ * @brief analizo el paquete que me envio la CIAA
+ * 
+ */
+
+static int extraerIDCIAA (char* cadena) {
+
+    char cad[16];
+    char ID_char [5];
+    char*ptok;
+
+    int ID_int;
+
+    strcpy(cad, cadena);
+    
+
+    ptok = strtok(cad, ":");
+    ptok = strtok(NULL, "\r");
+    strcpy(ID_char, ptok);
+
+    ID_int = atoi(ID_char);
+    
+    return ID_int;
+}
+
 
 

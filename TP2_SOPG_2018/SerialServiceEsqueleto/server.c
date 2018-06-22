@@ -46,6 +46,7 @@ int lanzarThreadCliente (int newfd);
 void* threadServidor (void* p);
 void* threadAtenderCliente (void* pConexion);
 
+static int analizarPaqueteServer (char* cadena);
 /* --------------------------------------- variables globales -------------------------------------- */
 
 pthread_mutex_t mutexLista = PTHREAD_MUTEX_INITIALIZER;
@@ -170,7 +171,7 @@ static int escribirSocketGeneral (int fd) {
 
 int finalizarThreadServidor (pthread_t servidor_thread) {
 
-    printf("Finalizando thread servidor\n");
+    printf("Finalizando thread servidor...");
 
     if(cerrarClientes()) {
         fprintf(stderr, "Error al intentar cerrar conexiones con clientes\n");
@@ -187,6 +188,7 @@ int finalizarThreadServidor (pthread_t servidor_thread) {
         return 1;
     }
 
+    printf("Servidor cerrado\n");
     return 0;
 }
 
@@ -274,6 +276,10 @@ int lanzarThreadCliente (int newfd) {
         return 1;
     }
     */
+
+    listaConexiones[index].flagFree=0;
+    listaConexiones[index].fd = newfd;
+
     printf("Generando thread para atender conexion...");
     if(pthread_create (&listaConexiones[index].thread, NULL, threadAtenderCliente, &listaConexiones[index])) {
         pthread_mutex_unlock (&mutexLista);
@@ -288,8 +294,7 @@ int lanzarThreadCliente (int newfd) {
     }
     printf("hilo de atencion de cliente creado\n");
 
-    listaConexiones[index].flagFree=0;
-    listaConexiones[index].fd = newfd;
+
 
     if(pthread_mutex_unlock (&mutexLista)) {
         perror("Error al desbloquear el acceso a la lista de conexiones");
@@ -465,6 +470,7 @@ void* threadAtenderCliente (void* pConexion) {
 
         if(bytes_enviar > 0)
         {
+            // fprintf(stderr, "bytes a enviar %d\n", bytes_enviar);
             // tengo datos para enviar
 	        if (write (newfd, servidor_tx_buf, bytes_enviar) == -1)
 	        {
@@ -478,7 +484,7 @@ void* threadAtenderCliente (void* pConexion) {
 		            perror("Thread: Error leyendo mensaje en socket");
 		            exit(1);
 	            }
-                fprintf(stderr, "servidor: sali del read\n");
+                //fprintf(stderr, "servidor: sali del read\n");
 
                 if(n == 0) {
 
@@ -488,14 +494,27 @@ void* threadAtenderCliente (void* pConexion) {
 
 	            servidor_rx_buf[n - 1]=0;
 
-                if(escribirBuf(&bufSerieTx, servidor_rx_buf, n)) {
-                    fprintf(stderr, "No se pudo escribir el buffer de recepcion del puerto Serie\n");
+                switch(analizarPaqueteServer(servidor_rx_buf)) {
+                
+                case CADENA_OUT:
+                    printf("SERVER: acceso habilitado\n");
+                    if(escribirBuf(&bufSerieTx, servidor_rx_buf, n)) {
+                        fprintf(stderr, "No se pudo escribir el buffer de recepcion del puerto Serie\n");
+                    }
+                    break;
+
+                default:
+                    printf("SERVER: mensaje erroneo\n");
+
                 }
-	            printf("Recibi %d bytes del cliente %4d :'%s'\n", n, clienteID, servidor_rx_buf);
+
+                
+	            // printf("Recibi %d bytes del cliente %4d :'%s'\n", n, clienteID, servidor_rx_buf);
+                 
             }
         }
 
-
+        usleep(10000);
         
 
 	   
@@ -528,4 +547,36 @@ void* threadAtenderCliente (void* pConexion) {
 
     return 0;
 }
+
+
+/**
+ * @fn int analizarPaqueteServer (char* paq)
+ *
+ * @brief analizo el paquete recibido del servidor
+ * 
+ */
+
+static int analizarPaqueteServer (char* cadena) {
+
+    char cad[16];
+
+    strcpy(cad, cadena);
+    cad[4] = '\0';
+        
+
+    if(strcmp(cad, ">OUT") == 0) {
+        return CADENA_OUT;
+    }
+    else {
+        return CADENA_ERR;
+    }    
+    
+    return 0;
+
+
+}
+
+
+
+
 
